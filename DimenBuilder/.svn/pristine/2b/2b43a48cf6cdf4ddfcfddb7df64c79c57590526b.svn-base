@@ -1,0 +1,165 @@
+#include "stdafx.h"
+#include <windows.h>
+#include <shellapi.h>
+
+#include "resource.h"
+#include "win_impl_base.hpp"
+#include "message_box.hpp"
+#include "edit_dialog.hpp"
+
+const TCHAR* const kTitleControlName = _T("apptitle");
+const TCHAR* const kCloseButtonControlName = _T("closebtn");
+const TCHAR* const kMinButtonControlName = _T("minbtn");
+const TCHAR* const kMaxButtonControlName = _T("maxbtn");
+const TCHAR* const kRestoreButtonControlName = _T("restorebtn");
+
+CEditDialog::CEditDialog(HWND hParent, const tString& name, const tString& adjust)
+: parent_(hParent)
+, name_(name)
+, adjust_(adjust)
+{
+	Create(parent_, NULL, WS_POPUP, WS_EX_TOOLWINDOW, CRect());
+}
+
+CEditDialog::~CEditDialog()
+{}
+
+LPCTSTR CEditDialog::GetWindowClassName() const
+{
+	return _T("CEditDialog");
+}
+
+CControlUI* CEditDialog::CreateControl(LPCTSTR pstrClass)
+{
+	return NULL;
+}
+
+void CEditDialog::OnFinalMessage(HWND hWnd)
+{
+	WindowImplBase::OnFinalMessage(hWnd);
+}
+
+tString CEditDialog::GetSkinFile()
+{
+	TCHAR szBuf[MAX_PATH] = {0};
+	_stprintf_s(szBuf, MAX_PATH - 1, _T("%d"), IDR_XML_EDIT_DIALOG);
+	return szBuf;
+}
+
+tString CEditDialog::GetSkinFolder()
+{
+	return tString(CPaintManagerUI::GetInstancePath());
+}
+
+LONG CEditDialog::GetStyle()
+{
+	LONG styleValue = ::GetWindowLong(*this, GWL_STYLE);
+	styleValue &= ~( WS_CAPTION | WS_MAXIMIZEBOX | WS_SIZEBOX );
+
+	return styleValue;
+}
+
+LRESULT CEditDialog::OnSysCommand(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+{
+	return __super::OnSysCommand(uMsg, wParam, lParam, bHandled);
+}
+
+LRESULT CEditDialog::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	return __super::HandleMessage(uMsg, wParam, lParam);
+}
+
+LRESULT CEditDialog::ResponseDefaultKeyEvent(WPARAM wParam)
+{
+	if (wParam == VK_RETURN)
+	{
+		return FALSE;
+	}
+	else if (wParam == VK_ESCAPE)
+	{
+		return TRUE;
+	}
+	return FALSE;
+}
+
+
+// 窗口刚创建完成时调用该函数
+void CEditDialog::Init()
+{}
+
+// 窗口将要显示前调用该函数
+void CEditDialog::OnPrepare(TNotifyUI& msg)
+{
+	CEditUI* pEdit = static_cast<CEditUI*>(paint_manager_.FindControl(_T("exception_name")));
+	if (pEdit != NULL)
+	{
+		pEdit->SetText(name_.c_str());
+		if (!name_.empty())
+			pEdit->SetReadOnly(true);
+	}
+
+	pEdit = static_cast<CEditUI*>(paint_manager_.FindControl(_T("radioEdit")));
+	if (pEdit != NULL)
+	{
+		pEdit->SetText(adjust_.c_str());
+	}
+}
+
+void CEditDialog::Notify(TNotifyUI& msg)
+{
+	if (_tcsicmp(msg.sType, kWindowInit) == 0)
+	{
+		// 窗口将要显示前调用该函数
+		OnPrepare(msg);
+	}
+	else if (_tcsicmp(msg.sType, kClick) == 0)
+	{
+		if (_tcsicmp(msg.pSender->GetName(), kCloseButtonControlName) == 0)
+		{
+			Close(IDCLOSE);
+		}
+		else if (_tcsicmp(msg.pSender->GetName(), _T("okbtn")) == 0)
+		{
+			CEditUI* pEdit = static_cast<CEditUI*>(paint_manager_.FindControl(_T("exception_name")));
+			if (pEdit != NULL)
+			{
+				tString text = pEdit->GetText();
+				if (text.empty())
+				{
+					DUIMessageBox(parent_, _T("请输入正确的调整比例！"), _T("提示"));
+					return;
+				}
+				name_ = text;
+			}
+
+			float adjust_radio = 1.0f;
+
+			pEdit = static_cast<CEditUI*>(paint_manager_.FindControl(_T("radioEdit")));
+			if (pEdit != NULL)
+			{
+				tString text = pEdit->GetText();
+
+				bool hasdot = false;
+				for (tString::const_iterator citer = text.begin(); citer != text.end(); ++citer)
+				{
+					if ((*citer == '.' && (citer == text.begin() || citer == text.end() - 1)) || (!isdigit(*citer) && !(*citer == '.')) || (hasdot && (*citer == '.')))
+					{
+						DUIMessageBox(parent_, _T("请输入正确的调整比例！"), _T("提示"));
+						return;
+					}
+					if (*citer == '.')
+						hasdot = true;
+				}
+				adjust_radio = _tstof(text.c_str());
+				adjust_ = text;
+			}
+
+			Close(IDOK);
+		}
+	}
+}
+
+LRESULT CEditDialog::HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+{
+	return 0;
+}

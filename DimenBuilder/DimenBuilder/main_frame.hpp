@@ -1,0 +1,127 @@
+//
+// main_frame.hpp
+// ~~~~~~~~~~~~~~
+//
+// Copyright (c) 2011 achellies (achellies at 163 dot com)
+//
+// This code may be used in compiled form in any way you desire. This
+// source file may be redistributed by any means PROVIDING it is 
+// not sold for profit without the authors written consent, and 
+// providing that this notice and the authors name is included. 
+//
+// This file is provided "as is" with no expressed or implied warranty.
+// The author accepts no liability if it causes any damage to you or your
+// computer whatsoever. It's free, so don't hassle me about it.
+//
+// Beware of bugs.
+//
+
+#ifndef CONTAINERWINDOW_HPP
+#define CONTAINERWINDOW_HPP
+
+#define WM_INCREASE_PROGRESS (WM_USER + 0x1001)
+
+class ContainerWindowImpl;
+class CListContainerElementUIEx;
+
+struct DimenInfo
+{
+	string name;
+	string value;
+	float adjust;
+};
+
+class ExceptionDimenFinder
+{
+public:
+	ExceptionDimenFinder(const string& name)
+		:name_(name)
+	{}
+
+	bool operator()(const DimenInfo& dimen)
+	{
+		if (stricmp(dimen.name.c_str(), name_.c_str()) == 0)
+			return true;
+
+		return false;
+	}
+
+private:
+	const string& name_;
+};
+
+class MainFrame : public ContainerWindowImpl
+{
+public:
+
+	MainFrame();
+	~MainFrame();
+
+public:
+
+	LPCTSTR GetWindowClassName() const;	
+
+	virtual void OnFinalMessage(HWND hWnd);
+
+	virtual void InitLayeredWindow();
+
+	virtual LRESULT ResponseDefaultKeyEvent(WPARAM wParam);
+
+	virtual tString GetSkinFile();
+
+	virtual tString GetSkinFolder();
+
+	virtual LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+	virtual LRESULT OnSysCommand(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+
+	virtual LRESULT HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
+
+protected:	
+
+	void Notify(TNotifyUI& msg);
+	void OnPrepare(TNotifyUI& msg);
+	void OnExit(TNotifyUI& msg);
+	void OnTimer(TNotifyUI& msg);
+	void Init();
+
+private:
+
+	void AddLogMessage(const tString& message, bool bTextColorRed = false);
+private:
+	MainFrame* container_window_;
+
+	vector<DimenInfo> dimens;
+	vector<DimenInfo> exception_dimens;
+};
+
+/////////////////////////////////////////////////////////////////////////////////////
+//
+class MyBuilderCallback : public IDialogBuilderCallback
+{
+public:
+	CControlUI* CreateControl(LPCTSTR pstrClass, CPaintManagerUI* pManager);
+};
+
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// ListContainerElementUIEx
+extern const TCHAR* const kListContainerElementUIExClassName;// = _T("ListContainerElementUIEx");
+extern const TCHAR* const kListContainerElementUIExInterfaceName;// = _T("ListContainerElementEx");
+class CListContainerElementUIEx : public CListContainerElementUI
+{
+public:
+	CListContainerElementUIEx();
+
+	~CListContainerElementUIEx();
+
+    LPCTSTR GetClass() const;
+    LPVOID GetInterface(LPCTSTR pstrName);
+
+	void SetPos(RECT rc);
+
+protected:
+};
+
+
+#endif // CONTAINERWINDOW_HPP

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Window>
+  <ListContainerElementEx>
+    <HorizontalLayout padding="0,2,10,0">
+      <VerticalLayout height="24" >
+        <Label name="column1" textpadding="4,0,4,0" height="24" align="center"  showhtml="true" />
+      </VerticalLayout>
+      <VerticalLayout height="24">
+        <Label name="column2" height="24" align="center"   showhtml="true"/>
+      </VerticalLayout>
+      <VerticalLayout height="24">
+        <Label name="column3" height="24" align="center"   showhtml="true"/>
+      </VerticalLayout>
+    </HorizontalLayout>
+  </ListContainerElementEx>
+</Window>

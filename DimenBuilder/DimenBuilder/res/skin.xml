@@ -1,0 +1,91 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Window caption="0,0,0,36" roundcorner="0,0" size="450,580" sizebox="6,6,6,6" mininfo="450,580" alpha="245" >
+  <Font name="微软雅黑" size="16" bold="false" default="true" />
+  <Font name="微软雅黑" size="12" bold="false"/>
+  <Default name="Combo" value="normalimage=&quot;res='118' restype='png' source='0,0,100,22' corner='2,2,20,2'&quot; hotimage=&quot;res='118' restype='png' source='0,22,100,44' corner='2,2,22,2'&quot; focusedimage=&quot;res='118' restype='png' source='0,22,100,44' corner='2,2,22,2'&quot; pushedimage=&quot;res='118' restype='png' source='0,44,100,66' corner='2,2,22,2'&quot;" />
+  <Default name="VScrollBar" value="button1normalimage=&quot;res='119' restype='png' source='0,0,16,16'&quot; button1hotimage=&quot;res='119' restype='png' source='0,0,16,16' mask='#FFFF00FF'&quot; button1pushedimage=&quot;res='119' restype='png' source='0,16,16,32' mask='#FFFF00FF'&quot; button1disabledimage=&quot;res='119' restype='png' source='0,0,16,16' mask='#FFFF00FF'&quot; button2normalimage=&quot;res='119' restype='png' source='0,32,16,48' mask='#FFFF00FF'&quot; button2hotimage=&quot;res='119' restype='png' source='0,32,16,48' mask='#FFFF00FF'&quot; button2pushedimage=&quot;res='119' restype='png' source='0,48,16,64' mask='#FFFF00FF'&quot; button2disabledimage=&quot;res='119' restype='png' source='0,32,16,48' mask='#FFFF00FF'&quot; thumbnormalimage=&quot;res='119' restype='png' source='0,64,16,80' corner='2,2,2,2' mask='#FFFF00FF'&quot; thumbhotimage=&quot;res='119' restype='png' source='0,64,16,80' corner='2,2,2,2' mask='#FFFF00FF'&quot; thumbpushedimage=&quot;res='119' restype='png' source='0,64,16,80' corner='2,2,2,2' mask='#FFFF00FF'&quot; thumbdisabledimage=&quot;res='119' restype='png' source='0,64,16,80' corner='2,2,2,2' mask='#FFFF00FF'&quot; railnormalimage=&quot;res='119' restype='png' source='0,80,16,96' corner='2,2,2,2' mask='#FFFF00FF'&quot; railhotimage=&quot;res='119' restype='png' source='0,80,16,96' corner='2,2,2,2' mask='#FFFF00FF'&quot; railpushedimage=&quot;res='119' restype='png' source='0,96,16,112' corner='2,2,2,2' mask='#FFFF00FF'&quot; raildisabledimage=&quot;res='119' restype='png' source='0,80,16,96' corner='2,2,2,2' mask='#FFFF00FF'&quot; bknormalimage=&quot;res='119' restype='png' source='0,128,16,146' corner='2,2,2,2' mask='#FFFF00FF'&quot; bkhotimage=&quot;res='119' restype='png' source='0,128,16,146' corner='2,2,2,2' mask='#FFFF00FF'&quot; bkpushedimage=&quot;res='119' restype='png' source='0,128,16,146' corner='2,2,2,2' mask='#FFFF00FF'&quot; bkdisabledimage=&quot;res='119' restype='png' source='0,128,16,146' corner='2,2,2,2' mask='#FFFF00FF'&quot; " />
+  <Default name="HScrollBar" value="button1normalimage=&quot;res='120' restype='png' source='0,0,16,16'&quot; button1hotimage=&quot;res='120' restype='png' source='0,0,16,16' mask='#FFFF00FF'&quot; button1pushedimage=&quot;res='120' restype='png' source='0,16,32,16' mask='#FFFF00FF'&quot; button1disabledimage=&quot;res='120' restype='png' source='0,0,16,16' mask='#FFFF00FF'&quot; button2normalimage=&quot;res='120' restype='png' source='32,0,48,16' mask='#FFFF00FF'&quot; button2hotimage=&quot;res='120' restype='png' source='32,0,48,16' mask='#FFFF00FF'&quot; button2pushedimage=&quot;file='vscroll.png' source='48,0,64,16' mask='#FFFF00FF'&quot; button2disabledimage=&quot;res='120' restype='png' source='32,0,48,16' mask='#FFFF00FF'&quot; thumbnormalimage=&quot;res='120' restype='png' source='64,0,80,16' corner='2,2,2,2' mask='#FFFF00FF'&quot; thumbhotimage=&quot;res='120' restype='png' source='64,0,80,16' corner='2,2,2,2' mask='#FFFF00FF'&quot; thumbpushedimage=&quot;ffile='hscroll.png' source='64,0,80,16' corner='2,2,2,2' mask='#FFFF00FF'&quot; thumbdisabledimage=&quot;res='120' restype='png' source='64,0,80,16' corner='2,2,2,2' mask='#FFFF00FF'&quot; railnormalimage=&quot;res='120' restype='png' source='80,0,96,16' corner='2,2,2,2' mask='#FFFF00FF'&quot; railhotimage=&quot;res='120' restype='png' source='80,0,96,16' corner='2,2,2,2' mask='#FFFF00FF'&quot; railpushedimage=&quot;res='120' restype='png' source='96,0,112,16' corner='2,2,2,2' mask='#FFFF00FF'&quot; raildisabledimage=&quot;res='120' restype='png' source='80,0,96,16' corner='2,2,2,2' mask='#FFFF00FF'&quot; bknormalimage=&quot;res='120' restype='png' source='128,0,146,16' corner='2,2,2,2' mask='#FFFF00FF'&quot; bkhotimage=&quot;res='120' restype='png' source='128,0,146,16' corner='2,2,2,2' mask='#FFFF00FF'&quot; bkpushedimage=&quot;res='120' restype='png' source='128,0,146,16' corner='2,2,2,2' mask='#FFFF00FF'&quot; bkdisabledimage=&quot;res='120' restype='png' source='128,0,146,16' corner='2,2,2,2' mask='#FFFF00FF'&quot; " />
+  <VerticalLayout name="bg" bkcolor="#FFE3E1DF" bordersize="2" bordercolor="#FF262627">
+    <HorizontalLayout height="36" bkcolor="#FF3C3B37">
+      <HorizontalLayout width="250" inset="2,2,0,0">
+        <Label bkimage="res='139' restype='png'" width="32" height="32"/>
+        <Label text="DimenBuilder 大黄蜂特别版" textpadding="10,0,0,0" textcolor="#FFFFFFFF"/>
+      </HorizontalLayout>
+      <VerticalLayout />
+      <VerticalLayout width="104" padding="0,6,0,0">
+        <Button name="minbtn" float="true" pos="0,0,28,19" width="28" height="19" normalimage="res='103' restype='png'" hotimage="res='104' restype='png'" pushedimage="res='105' restype='png'"/>
+        <Button name="maxbtn" float="true" pos="28,0,56,19" width="28" height="19" maxheight="19" maxwidth="28"  normalimage="res='106' restype='png'" hotimage="res='107' restype='png'" pushedimage="res='108' restype='png'"/>
+        <Button name="restorebtn" visible="false" float="true" pos="28,0,56,19" width="28" height="19" maxheight="19" maxwidth="28"  normalimage="res='109' restype='png'" hotimage="res='110' restype='png'" pushedimage="res='111' restype='png'"/>
+        <Button name="closebtn" float="true" pos="56,0,95,19" width="39" height="19" maxheight="19" maxwidth="39"  normalimage="res='112' restype='png'" hotimage="res='113' restype='png'" pushedimage="res='114' restype='png'"/>
+      </VerticalLayout>
+    </HorizontalLayout>
+
+    <VerticalLayout name="body" padding="2,0,2,0">
+
+
+      <HorizontalLayout inset="8,5,5,0" height="70">
+        <Option height="65" width="65" align="bottom" name="main_tab1" text="加工" textcolor="#FF386382" textpadding="0,0,0,2" foreimage="res='301' restype='png' dest='12,5,52,45'" hotimage="res='116' restype='png' corner='2,3,2,2'" pushedimage="res='117' restype='png' corner='2,5,2,2'" selectedimage="res='117' restype='png' corner='2,5,2,2'" selected="true" group="main_tab"/>
+        <Control width="10"/>
+        <Option height="65" width="65" align="bottom" name="main_tab2" text="设置" textcolor="#FF386382" textpadding="0,0,0,2" foreimage="res='302' restype='png' dest='12,5,52,45'" hotimage="res='116' restype='png' corner='2,3,2,2'" pushedimage="res='117' restype='png' corner='2,5,2,2'" selectedimage="res='117' restype='png' corner='2,5,2,2'" group="main_tab"/>
+        <Control />
+        <Control height="50" width="259" padding="0,8,0,0" bkimage="res='303' restype='png'"/>
+      </HorizontalLayout>
+      <TabLayout name="main_tab" bkcolor="#ffffffff" padding="0,1,1,1" inset="10,5,0,5" >
+        <VerticalLayout padding="0,10,0,0">
+          <HorizontalLayout bordersize="1" bordercolor="#FF3384D6" padding="5,5,5,0" inset="5,5,5,5">
+            <List name="dimen_list" itemtextpadding="5,0,1,1" vscrollbar="true" hscrollbar="false" header="show" itemshowhtml="true" headerbkimage="res='140' restype='png' corner='1,20,1,1'" itemalign="left" itemselectedimage="res='141' restype='png' corner='6,6,6,6'">
+              <ListHeader height="24">
+                <ListHeaderItem text="name" font="1" width="120" sepimage="res='142' restype='png'" sepwidth="2"/>
+                <ListHeaderItem text="value" font="1" width="120" sepimage="res='142' restype='png'" sepwidth="2"/>
+              </ListHeader>
+            </List>
+          </HorizontalLayout>
+          <HorizontalLayout padding="0,5,0,0" height="30">
+            <Label text="调整比例：" height="26" width="80"/>
+            <Edit text="1.0" name="radioEdit" bordercolor="#FF3384D6" height="26"  width="60" />
+            <Label text="倍" height="26" width="45" padding="5,0,0,0"/>
+            <Control />
+            <Button name="addbtn" bkimage="res='307' restype='png' "  width="25" height="25" hotimage="res='116' restype='png' corner='2,3,2,2'" pushedimage="res='117' restype='png' corner='2,5,2,2'"/>
+            <Control width="5" />
+            <Button name="clearbtn" bkimage="res='306' restype='png' "  width="25" height="25" hotimage="res='116' restype='png' corner='2,3,2,2'" pushedimage="res='117' restype='png' corner='2,5,2,2'"/>
+            <Control width="5" />
+            <Button name="builderbtn" bkimage="res='308' restype='png'"  width="25" height="25" hotimage="res='116' restype='png' corner='2,3,2,2'" pushedimage="res='117' restype='png' corner='2,5,2,2'"/>
+
+          </HorizontalLayout>
+        </VerticalLayout>
+        <VerticalLayout padding="0,10,0,0">
+          <Label text="这里定义需要额外调整的dimen" height="26" />
+          <HorizontalLayout bordersize="1" bordercolor="#FF3384D6" padding="5,5,5,0" inset="5,5,5,5">
+            <List name="exception_list" itemtextpadding="5,0,1,1" vscrollbar="true" hscrollbar="false" header="show" itemshowhtml="true" headerbkimage="res='140' restype='png' corner='1,20,1,1'" itemalign="left" itemselectedimage="res='141' restype='png' corner='6,6,6,6'">
+              <ListHeader height="24">
+                <ListHeaderItem text="name" font="1" width="120" sepimage="res='142' restype='png'" sepwidth="2"/>
+                <ListHeaderItem text="放大比例" font="1" width="120" sepimage="res='142' restype='png'" sepwidth="2"/>
+              </ListHeader>
+            </List>
+          </HorizontalLayout>
+          <HorizontalLayout padding="0,5,0,0" height="30">            
+            <Button name="add_exception_btn" tooltip="添加" bkimage="res='307' restype='png' "  width="25" height="25" hotimage="res='116' restype='png' corner='2,3,2,2'" pushedimage="res='117' restype='png' corner='2,5,2,2'"/>
+            <Control width="5" />
+            <Button name="edit_exception_btn" tooltip="修改" bkimage="res='308' restype='png'"  width="25" height="25" hotimage="res='116' restype='png' corner='2,3,2,2'" pushedimage="res='117' restype='png' corner='2,5,2,2'"/>
+            <Control width="5" />
+            <Button name="delete_exception_btn" tooltip="删除" bkimage="res='309' restype='png' "  width="25" height="25" hotimage="res='116' restype='png' corner='2,3,2,2'" pushedimage="res='117' restype='png' corner='2,5,2,2'"/>
+            <Control width="5" />
+            <Button name="clear_exception_btn" tooltip="清空" bkimage="res='306' restype='png' "  width="25" height="25" hotimage="res='116' restype='png' corner='2,3,2,2'" pushedimage="res='117' restype='png' corner='2,5,2,2'"/>            
+            <Control />
+          </HorizontalLayout>
+        </VerticalLayout>
+      </TabLayout>
+
+
+    </VerticalLayout>
+
+    <VerticalLayout height="30" padding="10,0,10,5">
+      <HorizontalLayout height="2" bkimage="res='144' restype='png'"/>
+      <HorizontalLayout>
+        <Label name="version" text="" font="1" textcolor="#FF3384D6" width="150"/>
+        <Label text="Copyright©2004-2012  360buy京东商城 版权所有" font="1" textcolor="#FF3384D6" align="right"/>
+      </HorizontalLayout>
+    </VerticalLayout>
+
+  </VerticalLayout>
+</Window>

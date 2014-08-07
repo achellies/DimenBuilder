@@ -1,0 +1,675 @@
+//
+// main_frame.cpp
+// ~~~~~~~~~~~~~~
+//
+// Copyright (c) 2011 achellies (achellies at 163 dot com)
+//
+// This code may be used in compiled form in any way you desire. This
+// source file may be redistributed by any means PROVIDING it is 
+// not sold for profit without the authors written consent, and 
+// providing that this notice and the authors name is included. 
+//
+// This file is provided "as is" with no expressed or implied warranty.
+// The author accepts no liability if it causes any damage to you or your
+// computer whatsoever. It's free, so don't hassle me about it.
+//
+// Beware of bugs.
+//
+
+#include "stdafx.h"
+#include <windows.h>
+#include <Commdlg.h>
+#if !defined(UNDER_CE)
+#include <shellapi.h>
+#endif
+#include <stdlib.h>
+
+#include "resource.h"
+#include "win_impl_base.hpp"
+#include "layered_window.hpp"
+#include "container_window_impl.hpp"
+#include "main_frame.hpp"
+#include "message_box.hpp"
+#include "window_util.hpp"
+#include "edit_dialog.hpp"
+#include "tinyxml.h"
+#include "zip.h"
+#include "unzip.h"
+#include "share_ptr.h"
+
+#include "xdstring.h"
+#include <algorithm>
+#include <Shlobj.h>
+
+#include <fstream>
+#include <iostream>
+
+const TCHAR* const kTitleControlName = _T("apptitle");
+const TCHAR* const kCloseButtonControlName = _T("closebtn");
+const TCHAR* const kMinButtonControlName = _T("minbtn");
+const TCHAR* const kMaxButtonControlName = _T("maxbtn");
+const TCHAR* const kRestoreButtonControlName = _T("restorebtn");
+
+MainFrame::MainFrame()
+: container_window_(NULL)
+{}
+
+MainFrame::~MainFrame()
+{
+	PostQuitMessage(0);
+}
+
+LPCTSTR MainFrame::GetWindowClassName() const
+{
+	return _T("TXGuiFoundation");
+}
+
+void MainFrame::OnFinalMessage(HWND hWnd)
+{
+	WindowImplBase::OnFinalMessage(hWnd);
+	delete this;
+}
+
+tString MainFrame::GetSkinFile()
+{
+	TCHAR szBuf[MAX_PATH] = {0};
+	_stprintf_s(szBuf, MAX_PATH - 1, _T("%d"), IDR_SKINXML);
+	return szBuf;
+}
+
+tString MainFrame::GetSkinFolder()
+{
+	return tString(CPaintManagerUI::GetInstancePath());
+}
+
+LRESULT MainFrame::OnSysCommand(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+{
+#if defined(WIN32) && !defined(UNDER_CE)
+	if (SC_CLOSE == wParam)
+	{
+		ShowWindow();
+		return 0;
+	}
+
+	BOOL bZoomed = ::IsZoomed(m_hWnd);
+	LRESULT lRes = CWindowWnd::HandleMessage(uMsg, wParam, lParam);
+	if (::IsZoomed(m_hWnd) != bZoomed)
+	{
+		if (!bZoomed)
+		{
+			CControlUI* pControl = static_cast<CControlUI*>(paint_manager_.FindControl(kMaxButtonControlName));
+			if( pControl ) pControl->SetVisible(false);
+			pControl = static_cast<CControlUI*>(paint_manager_.FindControl(kRestoreButtonControlName));
+			if( pControl ) pControl->SetVisible(true);
+		}
+		else 
+		{
+			CControlUI* pControl = static_cast<CControlUI*>(paint_manager_.FindControl(kMaxButtonControlName));
+			if( pControl ) pControl->SetVisible(true);
+			pControl = static_cast<CControlUI*>(paint_manager_.FindControl(kRestoreButtonControlName));
+			if( pControl ) pControl->SetVisible(false);
+		}
+	}
+#else
+	return __super::OnSysCommand(uMsg, wParam, lParam, bHandled);
+#endif
+
+	return 0;
+}
+
+LRESULT MainFrame::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	return __super::HandleMessage(uMsg, wParam, lParam);
+}
+
+LRESULT MainFrame::ResponseDefaultKeyEvent(WPARAM wParam)
+{
+	if (wParam == VK_RETURN)
+	{
+		return FALSE;
+	}
+	else if (wParam == VK_ESCAPE)
+	{
+		return TRUE;
+	}
+	return FALSE;
+}
+
+void MainFrame::OnTimer(TNotifyUI& msg)
+{
+}
+
+void MainFrame::OnExit(TNotifyUI& msg)
+{
+	AnimateWindow(GetHWND(), 1000, AW_SLIDE | AW_HIDE | AW_VER_NEGATIVE);
+	Close();
+}
+
+void MainFrame::InitLayeredWindow()
+{
+	HRSRC hResource = ::FindResource(paint_manager_.GetResourceDll(), MAKEINTRESOURCE(IDR_PNG_LAYERED), _T("PNG"));
+	if( hResource == NULL )
+		return;
+	HGLOBAL hGlobal = ::LoadResource(paint_manager_.GetResourceDll(), hResource);
+	if( hGlobal == NULL ) {
+#if defined(WIN32) && !defined(UNDER_CE)
+		FreeResource(hResource);
+#endif
+		return;
+	}
+
+	LPBYTE pData = NULL;
+	DWORD dwSize = 0;
+	dwSize = ::SizeofResource(paint_manager_.GetResourceDll(), hResource);
+	if( dwSize == 0 )
+		return;
+	pData = new BYTE[dwSize];
+	if (pData != NULL)
+	{
+		::CopyMemory(pData, (LPBYTE)::LockResource(hGlobal), dwSize);
+	}
+#if defined(WIN32) && !defined(UNDER_CE)
+	::FreeResource(hResource);
+#endif
+	m_global = ::GlobalAlloc(GMEM_MOVEABLE, dwSize);
+	if (m_global)
+	{
+		if (::CreateStreamOnHGlobal(m_global, FALSE, &m_stream) == S_OK)
+		{
+			void* pBuffer = ::GlobalLock(m_global);
+			if (pBuffer)
+			{
+				CopyMemory(pBuffer, pData, dwSize);
+
+				::GlobalUnlock(pBuffer);
+
+				Bitmap* pBitmap = Bitmap::FromStream(m_stream);
+
+				layered_window_ = new LayeredWindow();
+				layered_window_->Create(NULL, _T("DuiLib分层窗口"), 
+					WS_OVERLAPPED | WS_VISIBLE | WS_SIZEBOX | WS_MAXIMIZEBOX | WS_MINIMIZEBOX,
+					WS_EX_APPWINDOW | WS_EX_LAYERED | WS_EX_NOACTIVATE /*| WS_EX_TRANSPARENT*/,
+					CRect(0, 0, pBitmap->GetWidth(), pBitmap->GetHeight()));
+
+				container_window_ = new MainFrame();
+				container_window_->Create(layered_window_->GetHWND(), _T(""), 
+					WS_POPUP | WS_VISIBLE, 
+					WS_EX_TOOLWINDOW | WS_EX_LAYERED,
+					CRect());
+
+				layered_window_->SetContainerWindow(container_window_);
+				layered_window_->RepaintLayeredWnd();
+
+				CRect rcPadding;
+				RECT rcWindow;
+				GetClientRect(container_window_->GetHWND(), &rcWindow);
+				rcPadding.left = static_cast<LONG>((pBitmap->GetWidth() - rcWindow.right + rcWindow.left) / 2);
+				rcPadding.top = static_cast<LONG>((pBitmap->GetHeight() - rcWindow.bottom + rcWindow.top) / 2);
+
+				layered_window_->SetShadowInfo(pBitmap, 0, TRUE, rcPadding, TRUE);
+				layered_window_->CenterWindow();
+			}
+		}
+	}
+
+	delete[] pData;
+	pData = NULL;
+
+	SetIcon(IDI_ICON1);
+}
+
+void MainFrame::OnPrepare(TNotifyUI& msg)
+{
+	::ShowWindow(GetHWND(), SW_HIDE);
+	::BringWindowToTop(GetHWND());
+
+	AnimateWindow(GetHWND(), 1000, AW_SLIDE | AW_VER_POSITIVE);
+
+	CLabelUI* pLabel = static_cast<CLabelUI*>(paint_manager_.FindControl(_T("version")));
+	if (pLabel != NULL)
+	{
+		TCHAR szTitle[MAX_PATH] = {0};
+		// Get version information from the application
+		TCHAR *szBuf = (TCHAR *)malloc(sizeof(TCHAR)*128*7);
+		if (szBuf != NULL) 
+		{
+			TCHAR *szComment = &(szBuf[128*0]);
+			TCHAR *szCompanyName = &(szBuf[128*1]); 
+			TCHAR *szFileDescription = &(szBuf[128*2]);
+			TCHAR *szFileVersion = &(szBuf[128*3]);
+			TCHAR *szLegalCopyright = &(szBuf[128*4]);
+			TCHAR *szProductName = &(szBuf[128*5]);
+			TCHAR *szProductVersion = &(szBuf[128*6]);
+			if (!GetVerString(128, szComment,
+				szCompanyName, szFileDescription, szFileVersion, szLegalCopyright,
+				szProductName, szProductVersion))
+			{
+				goto allDone;
+			}
+#if defined(UNDER_CE)
+			_stprintf(szTitle, _T("主程序版本：%s"), szProductVersion);
+#else
+			_stprintf_s(szTitle, MAX_PATH, _T("主程序版本：%s"), szProductVersion);
+#endif
+			pLabel->SetText(szTitle);
+		}
+allDone:
+		if (szBuf != NULL)
+		{
+			free(szBuf);
+			szBuf = NULL;
+		}
+	}
+}
+
+void MainFrame::Notify(TNotifyUI& msg)
+{
+	if (_tcsicmp(msg.sType, kWindowInit) == 0)
+	{
+		OnPrepare(msg);
+	}
+	else if (_tcsicmp(msg.sType, kSelectChanged) == 0)
+	{
+		CStdString name = msg.pSender->GetName();
+		
+		if (_tcsicmp(name, _T("main_tab1")) == 0 || _tcsicmp(name, _T("main_tab2")) == 0) {
+			CTabLayoutUI* pTab = static_cast<CTabLayoutUI*>(paint_manager_.FindControl(_T("main_tab")));
+			COptionUI* pOption = static_cast<COptionUI*>(paint_manager_.FindControl(_T("main_tab1")));
+
+			if (pOption != NULL && pTab != NULL)
+				pTab->SelectItem(pOption->IsSelected() ? 0 : 1);
+		}
+	}
+	else if (_tcsicmp(msg.sType, kClick) == 0)
+	{
+		if (_tcsicmp(msg.pSender->GetName(), kCloseButtonControlName) == 0)
+		{
+			OnExit(msg);
+		}
+		else if (_tcsicmp(msg.pSender->GetName(), kMinButtonControlName) == 0)
+		{
+#if defined(UNDER_CE)
+			::ShowWindow(m_hWnd, SW_MINIMIZE);
+#else
+			SendMessage(WM_SYSCOMMAND, SC_MINIMIZE, 0);
+#endif
+		}
+		else if (_tcsicmp(msg.pSender->GetName(), kMaxButtonControlName) == 0)
+		{
+#if defined(UNDER_CE)
+			::ShowWindow(m_hWnd, SW_MAXIMIZE);
+			CControlUI* pControl = static_cast<CControlUI*>(paint_manager_.FindControl(kMaxButtonControlName));
+			if( pControl ) pControl->SetVisible(false);
+			pControl = static_cast<CControlUI*>(paint_manager_.FindControl(kRestoreButtonControlName));
+			if( pControl ) pControl->SetVisible(true);
+#else
+			SendMessage(WM_SYSCOMMAND, SC_MAXIMIZE, 0);
+#endif
+		}
+		else if (_tcsicmp(msg.pSender->GetName(), kRestoreButtonControlName) == 0)
+		{
+#if defined(UNDER_CE)
+			::ShowWindow(m_hWnd, SW_RESTORE);
+			CControlUI* pControl = static_cast<CControlUI*>(paint_manager_.FindControl(kMaxButtonControlName));
+			if( pControl ) pControl->SetVisible(true);
+			pControl = static_cast<CControlUI*>(paint_manager_.FindControl(kRestoreButtonControlName));
+			if( pControl ) pControl->SetVisible(false);
+#else
+			SendMessage(WM_SYSCOMMAND, SC_RESTORE, 0);
+#endif
+		}
+		else if (_tcsicmp(msg.pSender->GetName(), _T("add_exception_btn")) == 0)
+		{
+			CListUI* pList = static_cast<CListUI*>(paint_manager_.FindControl(_T("exception_list")));
+			CEditDialog edit_box(GetHWND(), _T(""), _T(""));
+			edit_box.CenterWindow();
+			if (pList != NULL && edit_box.ShowModal(GetHWND()) == IDOK)
+			{
+				CDialogBuilder builder;
+				MyBuilderCallback callback;
+				STRINGorID xml(IDR_XML_LIST_ITEM);
+				CListContainerElementUIEx* pListElement = static_cast<CListContainerElementUIEx*>(builder.Create(xml, _T("xml"), &callback, &paint_manager_));
+
+				if (pListElement != NULL)
+				{
+					pListElement->SetMouseChildEnabled(false);
+					CLabelUI* pColumn1 = static_cast<CLabelUI*>(paint_manager_.FindSubControlByName(pListElement, _T("column1")));
+					if (pColumn1 != NULL)
+						pColumn1->SetText(edit_box.GetExceptionName().c_str());
+
+					CLabelUI* pColumn2 = static_cast<CLabelUI*>(paint_manager_.FindSubControlByName(pListElement, _T("column2")));
+					if (pColumn2 != NULL)
+						pColumn2->SetText(edit_box.GetAdjustRadio().c_str());
+
+					pListElement->SetFixedHeight(24);
+					pList->Add(pListElement);
+
+					DimenInfo dimen;
+					dimen.name = StringConvertor::TcharToAnsi(edit_box.GetExceptionName().c_str());
+					dimen.adjust = _tstof(edit_box.GetAdjustRadio().c_str());
+
+					exception_dimens.push_back(dimen);
+				}
+			}
+		}
+		else if (_tcsicmp(msg.pSender->GetName(), _T("edit_exception_btn")) == 0)
+		{
+			CListUI* pList = static_cast<CListUI*>(paint_manager_.FindControl(_T("exception_list")));
+			if (pList != NULL && pList->GetCurSel() >= 0 && !exception_dimens.empty())
+			{
+				vector<DimenInfo>::iterator iter = find_if(exception_dimens.begin(), exception_dimens.end(), ExceptionDimenFinder(exception_dimens.at(pList->GetCurSel()).name));
+				if (iter != exception_dimens.end())
+				{
+					TCHAR szBuf[MAX_PATH] = {0};
+					_stprintf(szBuf, _T("%.1f"), iter->adjust);
+					CEditDialog edit_box(GetHWND(), StringConvertor::AnsiToTchar(iter->name.c_str()), szBuf);
+					edit_box.CenterWindow();
+
+					if (pList != NULL && edit_box.ShowModal(GetHWND()) == IDOK)
+					{
+						int index = pList->GetCurSel();
+						pList->Remove(pList->GetItemAt(pList->GetCurSel()));
+
+						CDialogBuilder builder;
+						MyBuilderCallback callback;
+						STRINGorID xml(IDR_XML_LIST_ITEM);
+						CListContainerElementUIEx* pListElement = static_cast<CListContainerElementUIEx*>(builder.Create(xml, _T("xml"), &callback, &paint_manager_));
+
+						if (pListElement != NULL)
+						{
+							pListElement->SetMouseChildEnabled(false);
+							CLabelUI* pColumn1 = static_cast<CLabelUI*>(paint_manager_.FindSubControlByName(pListElement, _T("column1")));
+							if (pColumn1 != NULL)
+								pColumn1->SetText(edit_box.GetExceptionName().c_str());
+
+							CLabelUI* pColumn2 = static_cast<CLabelUI*>(paint_manager_.FindSubControlByName(pListElement, _T("column2")));
+							if (pColumn2 != NULL)
+								pColumn2->SetText(edit_box.GetAdjustRadio().c_str());
+
+							pListElement->SetFixedHeight(24);
+							pList->AddAt(pListElement, index);
+
+							iter->name = StringConvertor::TcharToAnsi(edit_box.GetExceptionName().c_str());
+							iter->adjust = _tstof(edit_box.GetAdjustRadio().c_str());
+						}
+					}
+				}
+			}
+			else
+			{
+				DUIMessageBox(GetHWND(), _T("请选择要编辑的列表项！"), _T("提示"));
+			}
+		}
+		else if (_tcsicmp(msg.pSender->GetName(), _T("delete_exception_btn")) == 0)
+		{
+			CListUI* pList = static_cast<CListUI*>(paint_manager_.FindControl(_T("exception_list")));
+			if (pList != NULL && pList->GetCurSel() >= 0 && !exception_dimens.empty())
+			{
+				vector<DimenInfo>::iterator iter = find_if(exception_dimens.begin(), exception_dimens.end(), ExceptionDimenFinder(exception_dimens.at(pList->GetCurSel()).name));
+				if (iter != exception_dimens.end())
+					exception_dimens.erase(iter);
+
+				pList->Remove(pList->GetItemAt(pList->GetCurSel()));
+				DUIMessageBox(GetHWND(), _T("删除成功！"), _T("提示"));
+			}
+			else
+			{
+				DUIMessageBox(GetHWND(), _T("请选择要删除的列表项！"), _T("提示"));
+			}
+		}
+		else if (_tcsicmp(msg.pSender->GetName(), _T("clear_exception_btn")) == 0)
+		{
+			CListUI* pList = static_cast<CListUI*>(paint_manager_.FindControl(_T("exception_list")));
+			if (pList != NULL && (pList->GetCount() > 0 || !exception_dimens.empty()))
+			{
+				pList->RemoveAll();
+				exception_dimens.clear();
+				DUIMessageBox(GetHWND(), _T("清除成功！"), _T("提示"));
+			}
+		}
+		else if (_tcsicmp(msg.pSender->GetName(), _T("clearbtn")) == 0)
+		{
+			CListUI* pList = static_cast<CListUI*>(paint_manager_.FindControl(_T("dimen_list")));
+			if (pList != NULL && (pList->GetCount() > 0 || !dimens.empty()))
+			{
+				pList->RemoveAll();
+				dimens.clear();
+				DUIMessageBox(GetHWND(), _T("清除成功！"), _T("提示"));
+			}
+		}
+		else if (_tcsicmp(msg.pSender->GetName(), _T("builderbtn")) == 0)
+		{
+			float adjust_radio = 1.0f;
+
+			CEditUI* pEdit = static_cast<CEditUI*>(paint_manager_.FindControl(_T("radioEdit")));
+			if (pEdit != NULL)
+			{
+				tString text = pEdit->GetText();
+
+				for (tString::const_iterator citer = text.begin(); citer != text.end(); ++citer)
+				{
+					if (!isdigit(*citer) && *citer != '.')
+					{
+						DUIMessageBox(GetHWND(), _T("请输入正确的调整比例！"), _T("提示"));
+						return;
+					}
+				}
+				adjust_radio = _tstof(text.c_str());
+			}
+
+			if (dimens.empty() || (adjust_radio < 0.001f && adjust_radio > -0.0001f))
+			{
+				DUIMessageBox(GetHWND(), _T("请选择要处理的dimens.xml文件以及设置好调整比例后重试！"), _T("提示"));
+				return;
+			}
+
+			OPENFILENAME ofn = {0};
+			TCHAR szFileName[MAX_PATH] = {0};
+
+			ZeroMemory(&ofn, sizeof(ofn));
+
+			ofn.lStructSize = sizeof(ofn);
+			ofn.hwndOwner = m_hWnd;
+			ofn.lpstrFilter = _T("APK Files (*.xml)\0*.xml\0All Files (*.*)\0*.*\0");
+			ofn.lpstrFile = szFileName;
+			ofn.nMaxFile = MAX_PATH;
+			ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT;
+			ofn.lpstrDefExt = _T("xml");
+
+			if (GetSaveFileName(&ofn))
+			{
+				share_ptr<TiXmlDocument> pDocument(new TiXmlDocument(StringConvertor::TcharToUtf8(szFileName)));
+
+				TiXmlDeclaration Declaration("1.0","utf-8","yes");
+				pDocument->InsertEndChild(Declaration);
+
+				share_ptr<TiXmlElement> pRootElement(new TiXmlElement("resources"));
+
+				char szBuf[MAX_PATH] = {0};
+				for (vector<DimenInfo>::const_iterator citer = dimens.begin(); citer != dimens.end(); ++citer)
+				{
+					share_ptr<TiXmlElement> pDimen(new TiXmlElement("dimen"));
+
+					pDimen->SetAttribute("name", citer->name.c_str());
+
+					CStringXDA cstrValue = citer->value.c_str();
+					int begin_unit = 0;
+					if (cstrValue.Find("dip") != -1)
+					{
+						begin_unit = cstrValue.Find("dip");
+					}
+					else if (cstrValue.Find("sp") != -1)
+					{
+						begin_unit = cstrValue.Find("sp");
+					}
+
+					string unit = citer->value.substr(begin_unit);
+
+					vector<DimenInfo>::const_iterator citer2 = find_if(exception_dimens.begin(), exception_dimens.end(), ExceptionDimenFinder(citer->name));
+					if (citer2 != exception_dimens.end())
+						adjust_radio = citer2->adjust;
+
+					float text_size = atof(citer->value.substr(0, begin_unit).c_str());
+					text_size = text_size * adjust_radio;		
+					sprintf(szBuf, "%.1f%s", text_size, unit.c_str());
+					
+					share_ptr<TiXmlText> pText(new TiXmlText(szBuf));
+					pDimen->InsertEndChild(*pText.get());
+
+					pRootElement->InsertEndChild(*pDimen.get());
+				}
+
+				pDocument->InsertEndChild(*pRootElement);
+				pDocument->SaveFile();
+
+				DUIMessageBox(GetHWND(), _T("生成成功！"), _T("提示"));
+			}
+		}
+		else if (_tcsicmp(msg.pSender->GetName(), _T("addbtn")) == 0)	
+		{
+			OPENFILENAME ofn = {0};
+			TCHAR szFileName[MAX_PATH] = {0};
+
+			ZeroMemory(&ofn, sizeof(ofn));
+
+			ofn.lStructSize = sizeof(ofn);
+			ofn.hwndOwner = m_hWnd;
+			ofn.lpstrFilter = _T("APK Files (*.xml)\0*.xml\0All Files (*.*)\0*.*\0");
+			ofn.lpstrFile = szFileName;
+			ofn.nMaxFile = MAX_PATH;
+			ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY|OFN_ALLOWMULTISELECT;
+			ofn.lpstrDefExt = _T("xml");
+
+			if (GetOpenFileName(&ofn))
+			{
+				dimens.clear();
+
+#pragma region 解析XML
+
+				share_ptr<TiXmlDocument> pDocument(new TiXmlDocument(StringConvertor::TcharToUtf8(szFileName)));
+
+				pDocument->LoadFile();
+
+				TiXmlElement* pRootElement = pDocument->RootElement();
+				TiXmlElement* pDimentElement = pRootElement->FirstChildElement();
+				while (pDimentElement != NULL)
+				{
+					TiXmlAttribute* pAttribute = pDimentElement->FirstAttribute();
+					if (pAttribute != NULL)
+					{
+						const char* pName = pAttribute->Name();
+						const char* pValue = pAttribute->Value();
+
+						if (pName != NULL && pValue != NULL && stricmp(pName, "name") == 0 && ((strstr(pValue, "hSize") != NULL) || (strstr(pValue, "wSize") != NULL) || (strstr(pValue, "tSize") != NULL)))
+						{
+							DimenInfo dimen;
+							dimen.name = pValue;
+
+							const char* pText = pDimentElement->GetText();
+							if (pText != NULL)
+							{
+								dimen.value = pText;
+								dimens.push_back(dimen);
+							}
+						}
+					}
+
+					pDimentElement = pDimentElement->NextSiblingElement();
+				}
+#pragma endregion
+
+				CListUI* pList = static_cast<CListUI*>(paint_manager_.FindControl(_T("dimen_list")));
+				if (pList != NULL && !dimens.empty())
+				{
+					pList->RemoveAll();
+					CDialogBuilder builder;
+					MyBuilderCallback callback;
+					STRINGorID xml(IDR_XML_LIST_ITEM);
+
+					for (vector<DimenInfo>::const_iterator citer = dimens.begin(); citer != dimens.end(); ++citer)
+					{
+						CListContainerElementUIEx* pListElement = static_cast<CListContainerElementUIEx*>(builder.Create(xml, _T("xml"), &callback, &paint_manager_));
+
+						if (pListElement != NULL)
+						{
+							pListElement->SetMouseChildEnabled(false);
+							CLabelUI* pColumn1 = static_cast<CLabelUI*>(paint_manager_.FindSubControlByName(pListElement, _T("column1")));
+							if (pColumn1 != NULL)
+								pColumn1->SetText(StringConvertor::AnsiToTchar(citer->name.c_str()));
+
+							CLabelUI* pColumn2 = static_cast<CLabelUI*>(paint_manager_.FindSubControlByName(pListElement, _T("column2")));
+							if (pColumn2 != NULL)
+								pColumn2->SetText(StringConvertor::AnsiToTchar(citer->value.c_str()));
+
+							pListElement->SetFixedHeight(24);
+							pList->Add(pListElement);
+						}
+					}
+				}
+			}
+		}
+	}
+	else if (_tcsicmp(msg.sType, kTimer) == 0)
+	{
+		return OnTimer(msg);
+	}
+}
+
+LRESULT MainFrame::HandleCustomMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
+{
+	return 0;
+}
+
+CControlUI* MyBuilderCallback::CreateControl(LPCTSTR pstrClass, CPaintManagerUI* pManager)
+{
+	if (_tcsicmp(pstrClass, _T("ListContainerElementEx")) == 0)
+	{
+		return new CListContainerElementUIEx();
+	}
+	return NULL;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+//
+// ListContainerElementUIEx
+const TCHAR* const kListContainerElementUIExClassName = _T("ListContainerElementUIEx");
+const TCHAR* const kListContainerElementUIExInterfaceName = _T("ListContainerElementEx");
+
+CListContainerElementUIEx::CListContainerElementUIEx()
+{}
+
+CListContainerElementUIEx::~CListContainerElementUIEx()
+{}
+
+LPCTSTR CListContainerElementUIEx::GetClass() const
+{
+	return kListContainerElementUIExClassName;
+}
+
+LPVOID CListContainerElementUIEx::GetInterface(LPCTSTR pstrName)
+{
+	if( _tcscmp(pstrName, kListContainerElementUIExInterfaceName) == 0 ) return static_cast<CListContainerElementUIEx*>(this);
+    return CListContainerElementUI::GetInterface(pstrName);
+}
+
+void CListContainerElementUIEx::SetPos(RECT rc)
+{
+	CListContainerElementUI::SetPos(rc);
+
+	if( m_pOwner == NULL ) return;
+	TListInfoUI* pInfo = m_pOwner->GetListInfo();
+
+	if ((GetCount() == 1) && (GetItemAt(0)->GetInterface(kIContainerUIInterfaceName) != NULL))
+	{
+		for( int i = 0; i < pInfo->nColumns; i++ )
+		{
+			RECT rcItem = { pInfo->rcColumn[i].left, m_rcItem.top, pInfo->rcColumn[i].right, m_rcItem.bottom };
+
+			CContainerUI* pSubControls = static_cast<CContainerUI*>(GetItemAt(0));
+			if (pSubControls->GetItemAt(i) != NULL)
+			{
+				pSubControls->GetItemAt(i)->SetPos(rcItem);
+			}
+		}
+	}
+}
